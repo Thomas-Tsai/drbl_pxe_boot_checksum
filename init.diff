@@ -1,0 +1,21 @@
+219a220,225
+> 	drbl_gpgchk)
+> 		drbl_gpgchk=y
+> 		;;
+> 	drbl_tftpip=*)
+> 		drbl_tftpip="${x#drbl_tftpip=}"
+> 		;;
+309a316,328
+> 
+> 
+> maybe_break gpg
+> if [ "$drbl.gpgchk" != "y" ];then
+>     chkret=$(/opt/checktftpfiles $drbl_tftpip | grep error$) 
+>     if [ "X$chkret" != "X" ]; then
+>         echo "File check error"
+>         break=errorgpg
+>     else
+>         echo "File check successfully"
+>     fi
+> fi
+> maybe_break errorgpg

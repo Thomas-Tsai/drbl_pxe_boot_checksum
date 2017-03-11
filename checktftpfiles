@@ -1,0 +1,72 @@
+#!/bin/sh
+# small readme
+# prepare your .sig file first
+# eg:
+# pushd /tftproot/nbi_img/
+# md5sum * > tftpfiles.md5
+# gpg --output tftpfiles.md5.sig --detach-sig tftpfiles.md5
+# popd // done
+
+# 
+# global vars
+#
+checkList="/root/lib/live/mount/medium/live/Clonezilla-live-filesystem.squashfs"
+md5File="/tftpfiles.md5"
+signedFile="/tftpfiles.md5.sig"
+gpgPath="/opt/gpg"
+dest="/opt"
+ip=$1
+
+#
+# verify file
+#
+verifySign(){
+    gpg --homedir $gpgPath  --verify ${dest}/$signedFile ${dest}/$md5File
+    if [ $? != 0 ]; then
+        echo 0
+    else
+        echo 1
+    fi
+}
+
+#
+# check md5 file
+#
+checkFile(){
+    file=$1
+    xfile=$(basename $file)
+    checkSum=$(grep $xfile ${dest}/$md5File | busybox cut -d ' ' -f 1)
+    fileSum=$(busybox md5sum $file | busybox cut -d ' ' -f 1)
+    
+    if [ "$checkSum" == "$fileSum" ];then
+        echo 1
+    else
+        echo 0
+    fi
+}
+
+#
+# main
+#
+
+if [ "X$ip" != "X" ]; then
+    busybox tftp -g -b 65464 -r $md5File  -l ${dest}/$md5File $ip
+    busybox tftp -g -b 65464 -r $signedFile -l ${dest}/$signedFile $ip
+fi
+
+trust=$(verifySign)
+
+if [ "X$trust" == "X1" ];then
+
+    for file in $checkList; do
+        checkResult=$(checkFile $file)
+        if [ "X$checkResult" == "X0" ];then
+            echo "$file checksum error"
+        else
+            echo "$file checksum successful"
+        fi
+    done
+else
+
+    echo "The file ${dest}/$md5File in bad signature"
+fi

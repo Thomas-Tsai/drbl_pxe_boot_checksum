@@ -1,0 +1,25 @@
+#!/bin/bash
+init_path=$1
+xlist=$(ldd /usr/bin/gpg | grep so | sed 's/\t//g' | sed 's/.*=> //g' | awk {'print $1'})
+
+cp --parents /usr/bin/gpg $init_path
+for x in $xlist; do
+echo $x
+ls -l $init_path/$x
+if [ $? == 2 ]; then
+    echo "NOFILE"
+    cp --parents -H $x $init_path/
+fi
+done
+
+mkdir $init_path/opt
+cp -r ./gpg $init_path/opt/
+cp ./checktftpfiles $init_path/opt/
+
+pushd $init_path
+find . | cpio --create --format='newc' > ../newinitrd
+popd
+
+gzip newinitrd
+
+cp newinitrd.gz /tftpboot/nbi_img/Clonezilla-live-initrd.img
